@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Generator - Edukazo Style</title>
+  <title>Mmd-Ai Studio - Ebook Generator Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Library untuk ubah Markdown AI jadi HTML Rapi -->
+  <!-- Library Markdown Parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Library html2pdf untuk ekspor PDF -->
+  <!-- Library html2pdf Engine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     body { background-color: #0b0f19; color: #f3f4f6; }
     
-    /* Styling hasil tampilan di web */
+    /* Styling Tampilan Web */
     .prose-custom h1 { font-size: 1.5rem; font-weight: 700; color: #10b981; margin-top: 1rem; margin-bottom: 0.5rem; }
     .prose-custom h2 { font-size: 1.25rem; font-weight: 700; color: #38bdf8; margin-top: 1rem; margin-bottom: 0.5rem; }
     .prose-custom h3 { font-size: 1.1rem; font-weight: 600; color: #facc15; margin-top: 0.75rem; margin-bottom: 0.5rem; }
@@ -21,20 +21,49 @@
     .prose-custom strong { color: #ffffff; font-weight: 600; }
     .prose-custom ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
 
-    /* Styling khusus untuk cetak PDF agar seperti E-Book Asli */
-    .pdf-template {
-      background: #ffffff;
-      color: #1e293b;
-      padding: 30px;
-      font-family: 'Georgia', serif;
-      line-height: 1.7;
+    /* Aturan Anti-Terpotong Canggung untuk PDF */
+    .html2pdf__page-break {
+      page-break-before: always;
     }
-    .pdf-template h1 { font-size: 22px; font-weight: bold; color: #0f172a; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-top: 15px; margin-bottom: 12px; }
-    .pdf-template h2 { font-size: 18px; font-weight: bold; color: #0369a1; margin-top: 15px; margin-bottom: 8px; }
-    .pdf-template h3 { font-size: 15px; font-weight: bold; color: #334155; margin-top: 10px; margin-bottom: 6px; }
-    .pdf-template p { font-size: 12px; color: #334155; margin-bottom: 10px; text-align: justify; }
-    .pdf-template hr { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
-    .pdf-template strong { color: #0f172a; }
+    .pdf-content h1, .pdf-content h2, .pdf-content h3 {
+      page-break-after: avoid;
+    }
+    .pdf-content p, .pdf-content ul {
+      page-break-inside: avoid;
+    }
+
+    /* Template PDF Base */
+    .pdf-container {
+      background: #ffffff;
+      font-family: 'Georgia', serif;
+      line-height: 1.8;
+      color: #1e293b;
+    }
+
+    /* Cover Page Styling */
+    .pdf-cover {
+      min-height: 280mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 60px 40px;
+      box-sizing: border-box;
+      text-align: center;
+      page-break-after: always;
+    }
+
+    /* Tema Warna PDF */
+    .theme-emerald .cover-accent { background-color: #10b981; color: #ffffff; }
+    .theme-emerald h1 { color: #065f46; }
+    .theme-emerald h2 { color: #047857; }
+
+    .theme-navy .cover-accent { background-color: #1e3a8a; color: #ffffff; }
+    .theme-navy h1 { color: #1e3a8a; }
+    .theme-navy h2 { color: #1d4ed8; }
+
+    .theme-minimal .cover-accent { background-color: #334155; color: #ffffff; }
+    .theme-minimal h1 { color: #0f172a; }
+    .theme-minimal h2 { color: #334155; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 sm:p-6">
@@ -42,9 +71,9 @@
   <!-- Header -->
   <div class="w-full max-w-xl text-center my-6">
     <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-      <span>✨</span> AI Content Generator
+      <span>✨</span> Mmd-Ai Studio
     </h1>
-    <p class="text-sm text-gray-400 mt-2">Bikin e-book, skrip, & konten instan siap jual berformat PDF.</p>
+    <p class="text-sm text-gray-400 mt-2">Buat E-Book & Konten Digital Berformat PDF Siap Jual.</p>
   </div>
 
   <!-- Main Container -->
@@ -54,11 +83,11 @@
     <div>
       <div class="flex justify-between items-center mb-2">
         <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          1. Masukkan API Key Gemini Anda
+          1. Gemini API Key
         </label>
         <button id="resetMemBtn" onclick="forceResetKey()" class="text-xs text-red-400 hover:underline">Reset Memori HP</button>
       </div>
-      <input type="text" id="apiKey" placeholder="Tempel API Key Baru Di Sini (AIzaSy...)" 
+      <input type="text" id="apiKey" placeholder="Tempel API Key Gemini Di Sini (AIzaSy...)" 
         class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition">
     </div>
 
@@ -71,32 +100,44 @@
         <button type="button" onclick="selectSkill('ebook', this)" class="skill-btn p-3 bg-gray-950 border border-emerald-500/50 rounded-xl text-left hover:border-emerald-500 transition active">
           <div class="text-lg">📘</div>
           <div class="font-semibold text-sm text-white mt-1">E-Book</div>
-          <div class="text-xs text-gray-400">Bab terstruktur & mendalam</div>
+          <div class="text-xs text-gray-400">Lengkap dengan Cover & Bab</div>
         </button>
         <button type="button" onclick="selectSkill('skrip', this)" class="skill-btn p-3 bg-gray-950 border border-gray-800 rounded-xl text-left hover:border-emerald-500 transition">
           <div class="text-lg">🎬</div>
-          <div class="font-semibold text-sm text-white mt-1">Skrip Iklan / Affiliate</div>
-          <div class="text-xs text-gray-400">Hook tajam & konversi tinggi</div>
+          <div class="font-semibold text-sm text-white mt-1">Skrip Iklan</div>
+          <div class="text-xs text-gray-400">Hook & Konversi Tinggi</div>
         </button>
         <button type="button" onclick="selectSkill('medsos', this)" class="skill-btn p-3 bg-gray-950 border border-gray-800 rounded-xl text-left hover:border-emerald-500 transition">
           <div class="text-lg">📱</div>
           <div class="font-semibold text-sm text-white mt-1">Media Sosial</div>
-          <div class="text-xs text-gray-400">Konsep siap posting</div>
+          <div class="text-xs text-gray-400">Konsep Siap Posting</div>
         </button>
         <button type="button" onclick="selectSkill('email', this)" class="skill-btn p-3 bg-gray-950 border border-gray-800 rounded-xl text-left hover:border-emerald-500 transition">
           <div class="text-lg">✉️</div>
           <div class="font-semibold text-sm text-white mt-1">Konten Email</div>
-          <div class="text-xs text-gray-400">Email bernilai konversi</div>
+          <div class="text-xs text-gray-400">Email Marketing Penjualan</div>
         </button>
       </div>
     </div>
 
-    <!-- 3. Topic Input -->
+    <!-- 3. Pilihan Tema Warna PDF -->
     <div>
       <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-        3. Tulis Ide Simpel Anda
+        3. Tema Warna PDF E-Book
       </label>
-      <textarea id="userPrompt" rows="3" placeholder="Contoh: Panduan Praktis Jualan Digital untuk Pemula" 
+      <select id="pdfTheme" class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+        <option value="theme-emerald">🟢 Emerald Green (Bisnis & Keuangan)</option>
+        <option value="theme-navy">🔵 Classic Navy (Edukasi & Profesional)</option>
+        <option value="theme-minimal">⚫ Minimalist Dark (Elegan & Modern)</option>
+      </select>
+    </div>
+
+    <!-- 4. Topic Input -->
+    <div>
+      <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        4. Tulis Judul / Ide Konten
+      </label>
+      <textarea id="userPrompt" rows="3" placeholder="Contoh: Trik Dapat Sehari Minimal 200 Ribu Dari HP" 
         class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition"></textarea>
     </div>
 
@@ -168,7 +209,7 @@
 
       btn.disabled = true;
       btn.innerText = "⚡ Menyusun Bab & Layout...";
-      resultBox.innerHTML = "<span class='text-gray-400'>Sedang merancang & memformat e-book profesional...</span>";
+      resultBox.innerHTML = "<span class='text-gray-400'>Sedang merancang e-book profesional...</span>";
       downloadBtn.classList.add('hidden');
 
       let systemInstruction = "";
@@ -195,7 +236,6 @@
 
         if (data.candidates && data.candidates[0].content.parts[0].text) {
           rawTextResult = data.candidates[0].content.parts[0].text;
-          // Render teks Markdown menjadi HTML berformat cantik
           resultBox.innerHTML = marked.parse(rawTextResult);
           downloadBtn.classList.remove('hidden');
         } else if (data.error) {
@@ -212,28 +252,50 @@
     function downloadPDF() {
       if (!rawTextResult) return;
 
+      const selectedTheme = document.getElementById('pdfTheme').value;
+      const userPrompt = document.getElementById('userPrompt').value.trim() || "E-Book Panduan Digital";
+
       const element = document.createElement('div');
-      element.className = 'pdf-template';
+      element.className = `pdf-container ${selectedTheme}`;
       
-      // Header E-book Cantik
-      const htmlContent = marked.parse(rawTextResult);
+      const parsedBody = marked.parse(rawTextResult);
+
+      // Susun Struktur PDF: Cover Page + Isi Konten
       element.innerHTML = `
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #10b981; padding-bottom: 15px;">
-          <p style="text-transform: uppercase; letter-spacing: 2px; font-size: 10px; color: #10b981; font-weight: bold; margin-bottom: 5px;">Digital E-Book Edition</p>
-          <p style="font-size: 9px; color: #94a3b8; margin: 0;">Diterbitkan via Mmd-Ai Studio</p>
+        <!-- HALAMAN 1: COVER E-BOOK AUTOMATIS -->
+        <div class="pdf-cover">
+          <div style="border-top: 4px solid currentColor; padding-top: 20px;">
+            <span class="cover-accent" style="padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px;">E-Book Spesial</span>
+          </div>
+          
+          <div style="margin: 40px 0;">
+            <h1 style="font-size: 28px; font-weight: bold; line-height: 1.3; margin-bottom: 15px;">${userPrompt}</h1>
+            <p style="font-size: 14px; color: #64748b; font-style: italic;">Panduan Praktis & Langkah Aplikasi Lapangan</p>
+          </div>
+
+          <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+            <p style="font-size: 11px; color: #94a3b8; margin: 0;">Diterbitkan Oleh:</p>
+            <p style="font-size: 13px; font-weight: bold; color: #334155; margin-top: 2px;">Pak Phow • Mmd-Ai Studio</p>
+          </div>
         </div>
-        <div>${htmlContent}</div>
-        <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; color: #94a3b8; font-size: 9px;">
-          Hak Cipta Dilindungi • Dibuat Otomatis
+
+        <!-- HALAMAN 2 DST: ISI KONTEN -->
+        <div class="pdf-content" style="padding: 40px;">
+          ${parsedBody}
+          
+          <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; color: #94a3b8; font-size: 10px;">
+            © Hak Cipta Dilindungi • Siap Dipasarkan via Lynk.id
+          </div>
         </div>
       `;
 
       const options = {
-        margin:       12,
-        filename:     'Ebook-MmdAi-SiapJual.pdf',
+        margin:       0,
+        filename:     `Ebook-${userPrompt.substring(0, 20).replace(/\s+/g, '-')}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
       html2pdf().from(element).set(options).save();
