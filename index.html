@@ -5,15 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Generator - Edukazo Style</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Library untuk ubah Markdown AI jadi HTML Rapi -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Library html2pdf untuk ekspor PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     body { background-color: #0b0f19; color: #f3f4f6; }
+    
+    /* Styling hasil tampilan di web */
+    .prose-custom h1 { font-size: 1.5rem; font-weight: 700; color: #10b981; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .prose-custom h2 { font-size: 1.25rem; font-weight: 700; color: #38bdf8; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .prose-custom h3 { font-size: 1.1rem; font-weight: 600; color: #facc15; margin-top: 0.75rem; margin-bottom: 0.5rem; }
+    .prose-custom p { margin-bottom: 0.75rem; line-height: 1.6; color: #e2e8f0; }
+    .prose-custom hr { border-color: #334155; margin: 1.5rem 0; }
+    .prose-custom strong { color: #ffffff; font-weight: 600; }
+    .prose-custom ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+
+    /* Styling khusus untuk cetak PDF agar seperti E-Book Asli */
     .pdf-template {
       background: #ffffff;
-      color: #1f2937;
-      padding: 40px;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      padding: 30px;
+      font-family: 'Georgia', serif;
+      line-height: 1.7;
     }
+    .pdf-template h1 { font-size: 22px; font-weight: bold; color: #0f172a; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-top: 15px; margin-bottom: 12px; }
+    .pdf-template h2 { font-size: 18px; font-weight: bold; color: #0369a1; margin-top: 15px; margin-bottom: 8px; }
+    .pdf-template h3 { font-size: 15px; font-weight: bold; color: #334155; margin-top: 10px; margin-bottom: 6px; }
+    .pdf-template p { font-size: 12px; color: #334155; margin-bottom: 10px; text-align: justify; }
+    .pdf-template hr { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+    .pdf-template strong { color: #0f172a; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 sm:p-6">
@@ -39,7 +60,6 @@
       </div>
       <input type="text" id="apiKey" placeholder="Tempel API Key Baru Di Sini (AIzaSy...)" 
         class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition">
-      <p id="keyStatus" class="text-xs text-emerald-400 mt-1 hidden">✓ Kunci baru terdeteksi</p>
     </div>
 
     <!-- 2. AI Skill Selection -->
@@ -102,18 +122,26 @@
       </div>
     </div>
 
-    <div id="resultBox" class="w-full min-h-[180px] p-4 bg-gray-900 border border-gray-800 rounded-xl text-sm text-gray-200 whitespace-pre-wrap">
-      Hasil AI akan muncul di sini...
+    <div id="resultBox" class="w-full min-h-[180px] p-5 bg-gray-900 border border-gray-800 rounded-xl text-sm prose-custom overflow-x-auto">
+      <span class="text-gray-500">Hasil AI akan muncul di sini...</span>
     </div>
   </div>
 
   <script>
     let currentSkill = 'ebook';
+    let rawTextResult = '';
+
+    window.onload = function() {
+      const savedKey = localStorage.getItem('gemini_api_key');
+      if (savedKey) {
+        document.getElementById('apiKey').value = savedKey;
+      }
+    };
 
     function forceResetKey() {
       localStorage.clear();
       document.getElementById('apiKey').value = '';
-      alert('Memori kunci lama berhasil dihapus total dari HP Anda! Silakan tempelkan API Key yang baru.');
+      alert('Memori kunci dihapus total!');
     }
 
     function selectSkill(skill, element) {
@@ -133,32 +161,25 @@
       const btn = document.getElementById('generateBtn');
       const downloadBtn = document.getElementById('downloadPdfBtn');
 
-      if (!apiKeyInput) {
-        alert('Mohon masukkan Gemini API Key Anda!');
-        return;
-      }
-      if (!userPrompt) {
-        alert('Mohon masukkan ide konten Anda!');
-        return;
-      }
+      if (!apiKeyInput) { alert('Masukkan API Key!'); return; }
+      if (!userPrompt) { alert('Masukkan ide konten!'); return; }
 
-      // Simpan key yang sedang aktif dipakai
       localStorage.setItem('gemini_api_key', apiKeyInput);
 
       btn.disabled = true;
       btn.innerText = "⚡ Menyusun Bab & Layout...";
-      resultBox.innerText = "Sedang merancang e-book profesional...";
+      resultBox.innerHTML = "<span class='text-gray-400'>Sedang merancang & memformat e-book profesional...</span>";
       downloadBtn.classList.add('hidden');
 
       let systemInstruction = "";
       if (currentSkill === 'ebook') {
-        systemInstruction = "Bertindaklah sebagai penulis e-book profesional. Buat draf e-book lengkap dengan Judul Utama, Kata Pengantar, Bab 1 hingga Bab 3 yang terstruktur rapi, mendalam, praktis, dan menggunakan bahasa Indonesia yang edukatif.";
+        systemInstruction = "Bertindaklah sebagai penulis e-book profesional. Buat draf e-book lengkap dengan Judul Utama, Kata Pengantar, dan Bab-bab terstruktur. Gunakan format Markdown (# untuk Judul Utama, ## untuk Sub-judul, ### untuk Topik, dan ** kata tebal).";
       } else if (currentSkill === 'skrip') {
-        systemInstruction = "Bertindaklah sebagai spesialis copywriting iklan video. Buat skrip iklan/affiliate berformat profesional dengan Judul, Hook 3 Detik Pertama, Isi, dan Call to Action (CTA) yang kuat.";
+        systemInstruction = "Bertindaklah sebagai spesialis copywriting iklan video. Buat skrip iklan berformat rapi dengan Judul, Hook 3 Detik, Isi, dan Call to Action. Gunakan format Markdown.";
       } else if (currentSkill === 'medsos') {
-        systemInstruction = "Bertindaklah sebagai Social Media Strategist. Buat konsep konten media sosial siap posting lengkap dengan Judul Konten, Poin-Poin Utama, serta Rekomendasi Caption dan Hashtag.";
+        systemInstruction = "Bertindaklah sebagai Social Media Strategist. Buat konsep konten media sosial siap posting lengkap dengan Headline, Isi Pesan, dan Hashtag. Gunakan format Markdown.";
       } else {
-        systemInstruction = "Bertindaklah sebagai Email Marketer berpengalaman. Buat draf email promosi berformat profesional dengan Subject Line, Salam, Isi Pesan, dan Tombol Penawaran.";
+        systemInstruction = "Bertindaklah sebagai Email Marketer berpengalaman. Buat email promosi dengan Subject Line, Salam, Isi, dan CTA. Gunakan format Markdown.";
       }
 
       const fullPrompt = `${systemInstruction}\n\nTopik/Ide: ${userPrompt}`;
@@ -167,23 +188,21 @@
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKeyInput}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: fullPrompt }] }]
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
         });
 
         const data = await response.json();
 
         if (data.candidates && data.candidates[0].content.parts[0].text) {
-          resultBox.innerText = data.candidates[0].content.parts[0].text;
+          rawTextResult = data.candidates[0].content.parts[0].text;
+          // Render teks Markdown menjadi HTML berformat cantik
+          resultBox.innerHTML = marked.parse(rawTextResult);
           downloadBtn.classList.remove('hidden');
         } else if (data.error) {
-          resultBox.innerText = `Terjadi kesalahan API: ${data.error.message}`;
-        } else {
-          resultBox.innerText = "Terjadi kesalahan: Respon tidak valid.";
+          resultBox.innerHTML = `<span class="text-red-400">Terjadi kesalahan API: ${data.error.message}</span>`;
         }
       } catch (err) {
-        resultBox.innerText = "Gagal terhubung ke server.";
+        resultBox.innerHTML = "<span class='text-red-400'>Gagal terhubung ke server.</span>";
       } finally {
         btn.disabled = false;
         btn.innerHTML = "<span>✨</span> Generate Konten & Layout E-Book";
@@ -191,27 +210,26 @@
     }
 
     function downloadPDF() {
-      const content = document.getElementById('resultBox').innerText;
-      if (!content || content.startsWith('Hasil AI akan') || content.startsWith('Sedang merancang')) {
-        alert('Belum ada konten yang di-generate!');
-        return;
-      }
+      if (!rawTextResult) return;
 
       const element = document.createElement('div');
       element.className = 'pdf-template';
+      
+      // Header E-book Cantik
+      const htmlContent = marked.parse(rawTextResult);
       element.innerHTML = `
-        <div style="border-bottom: 2px solid #10b981; padding-bottom: 15px; margin-bottom: 25px;">
-          <h1 style="color: #0f172a; font-size: 24px; margin: 0 0 5px 0;">📘 E-Book & Konten Profesional</h1>
-          <p style="color: #64748b; font-size: 12px; margin: 0;">Dibuat otomatis via Mmd-Ai • Edukazo Style</p>
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #10b981; padding-bottom: 15px;">
+          <p style="text-transform: uppercase; letter-spacing: 2px; font-size: 10px; color: #10b981; font-weight: bold; margin-bottom: 5px;">Digital E-Book Edition</p>
+          <p style="font-size: 9px; color: #94a3b8; margin: 0;">Diterbitkan via Mmd-Ai Studio</p>
         </div>
-        <div style="color: #334155; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${content}</div>
-        <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; color: #94a3b8; font-size: 10px;">
-          Hak Cipta Dilindungi • Siap Jual di Lynk.id
+        <div>${htmlContent}</div>
+        <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; color: #94a3b8; font-size: 9px;">
+          Hak Cipta Dilindungi • Dibuat Otomatis
         </div>
       `;
 
       const options = {
-        margin:       10,
+        margin:       12,
         filename:     'Ebook-MmdAi-SiapJual.pdf',
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true },
@@ -222,9 +240,8 @@
     }
 
     function copyResult() {
-      const text = document.getElementById('resultBox').innerText;
-      if (text && !text.startsWith('Hasil AI akan') && !text.startsWith('Sedang')) {
-        navigator.clipboard.writeText(text);
+      if (rawTextResult) {
+        navigator.clipboard.writeText(rawTextResult);
         alert('Teks berhasil disalin!');
       }
     }
