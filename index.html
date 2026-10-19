@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Generator - Edukazo Style</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Library html2pdf untuk ekspor langsung ke PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     body { background-color: #0b0f19; color: #f3f4f6; }
-    /* Styling khusus untuk layout PDF agar terlihat profesional */
     .pdf-template {
       background: #ffffff;
       color: #1f2937;
@@ -37,12 +35,11 @@
         <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
           1. Masukkan API Key Gemini Anda
         </label>
-        <button id="clearKeyBtn" onclick="clearApiKey()" class="text-xs text-red-400 hover:underline hidden">Hapus Key</button>
+        <button id="resetMemBtn" onclick="forceResetKey()" class="text-xs text-red-400 hover:underline">Reset Memori HP</button>
       </div>
-      <input type="password" id="apiKey" placeholder="AIzaSy..." 
-        class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition"
-        oninput="saveApiKey()">
-      <p id="keyStatus" class="text-xs text-emerald-400 mt-1 hidden">✓ API Key tersimpan di HP ini</p>
+      <input type="text" id="apiKey" placeholder="Tempel API Key Baru Di Sini (AIzaSy...)" 
+        class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+      <p id="keyStatus" class="text-xs text-emerald-400 mt-1 hidden">✓ Kunci baru terdeteksi</p>
     </div>
 
     <!-- 2. AI Skill Selection -->
@@ -105,7 +102,6 @@
       </div>
     </div>
 
-    <!-- Kotak Tampilan Hasil (Sekaligus Template PDF Tersembunyi/Render) -->
     <div id="resultBox" class="w-full min-h-[180px] p-4 bg-gray-900 border border-gray-800 rounded-xl text-sm text-gray-200 whitespace-pre-wrap">
       Hasil AI akan muncul di sini...
     </div>
@@ -114,31 +110,10 @@
   <script>
     let currentSkill = 'ebook';
 
-    window.onload = function() {
-      const savedKey = localStorage.getItem('gemini_api_key');
-      if (savedKey) {
-        document.getElementById('apiKey').value = savedKey;
-        document.getElementById('keyStatus').classList.remove('hidden');
-        document.getElementById('clearKeyBtn').classList.remove('hidden');
-      }
-    };
-
-    function saveApiKey() {
-      const key = document.getElementById('apiKey').value.trim();
-      if (key) {
-        localStorage.setItem('gemini_api_key', key);
-        document.getElementById('keyStatus').classList.remove('hidden');
-        document.getElementById('clearKeyBtn').classList.remove('hidden');
-      } else {
-        clearApiKey();
-      }
-    }
-
-    function clearApiKey() {
-      localStorage.removeItem('gemini_api_key');
+    function forceResetKey() {
+      localStorage.clear();
       document.getElementById('apiKey').value = '';
-      document.getElementById('keyStatus').classList.add('hidden');
-      document.getElementById('clearKeyBtn').classList.add('hidden');
+      alert('Memori kunci lama berhasil dihapus total dari HP Anda! Silakan tempelkan API Key yang baru.');
     }
 
     function selectSkill(skill, element) {
@@ -151,16 +126,14 @@
       element.classList.add('border-emerald-500');
     }
 
-    const delay = ms => new Promise(res => setTimeout(res, ms));
-
     async function generateContent() {
-      const apiKey = document.getElementById('apiKey').value.trim();
+      const apiKeyInput = document.getElementById('apiKey').value.trim();
       const userPrompt = document.getElementById('userPrompt').value.trim();
       const resultBox = document.getElementById('resultBox');
       const btn = document.getElementById('generateBtn');
       const downloadBtn = document.getElementById('downloadPdfBtn');
 
-      if (!apiKey) {
+      if (!apiKeyInput) {
         alert('Mohon masukkan Gemini API Key Anda!');
         return;
       }
@@ -168,6 +141,9 @@
         alert('Mohon masukkan ide konten Anda!');
         return;
       }
+
+      // Simpan key yang sedang aktif dipakai
+      localStorage.setItem('gemini_api_key', apiKeyInput);
 
       btn.disabled = true;
       btn.innerText = "⚡ Menyusun Bab & Layout...";
@@ -187,54 +163,33 @@
 
       const fullPrompt = `${systemInstruction}\n\nTopik/Ide: ${userPrompt}`;
 
-      const maxAttempts = 3;
-      let success = false;
-      let finalContent = "";
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKeyInput}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: fullPrompt }] }]
+          })
+        });
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          if (attempt > 1) {
-            resultBox.innerText = `Server padat, mencoba ulang otomatis (Percobaan ${attempt}/${maxAttempts})...`;
-            await delay(2500);
-          }
+        const data = await response.json();
 
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: fullPrompt }] }]
-            })
-          });
-
-          const data = await response.json();
-
-          if (data.candidates && data.candidates[0].content.parts[0].text) {
-            finalContent = data.candidates[0].content.parts[0].text;
-            resultBox.innerText = finalContent;
-            success = true;
-            downloadBtn.classList.remove('hidden'); // Munculkan tombol PDF
-            break;
-          } else if (data.error && data.error.message.includes("high demand")) {
-            continue;
-          } else if (data.error) {
-            resultBox.innerText = `Terjadi kesalahan API: ${data.error.message}`;
-            success = true;
-            break;
-          }
-        } catch (err) {
-          console.error(err);
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          resultBox.innerText = data.candidates[0].content.parts[0].text;
+          downloadBtn.classList.remove('hidden');
+        } else if (data.error) {
+          resultBox.innerText = `Terjadi kesalahan API: ${data.error.message}`;
+        } else {
+          resultBox.innerText = "Terjadi kesalahan: Respon tidak valid.";
         }
+      } catch (err) {
+        resultBox.innerText = "Gagal terhubung ke server.";
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "<span>✨</span> Generate Konten & Layout E-Book";
       }
-
-      if (!success) {
-        resultBox.innerText = "Server Google sedang sangat padat. Mohon coba klik tombol generate sekali lagi.";
-      }
-
-      btn.disabled = false;
-      btn.innerHTML = "<span>✨</span> Generate Konten & Layout E-Book";
     }
 
-    // Fungsi otomatis ubah hasil teks menjadi file PDF berformat rapi
     function downloadPDF() {
       const content = document.getElementById('resultBox').innerText;
       if (!content || content.startsWith('Hasil AI akan') || content.startsWith('Sedang merancang')) {
@@ -242,10 +197,8 @@
         return;
       }
 
-      // Buat elemen penampung khusus layout PDF berlatar putih bersih
       const element = document.createElement('div');
       element.className = 'pdf-template';
-      
       element.innerHTML = `
         <div style="border-bottom: 2px solid #10b981; padding-bottom: 15px; margin-bottom: 25px;">
           <h1 style="color: #0f172a; font-size: 24px; margin: 0 0 5px 0;">📘 E-Book & Konten Profesional</h1>
@@ -265,7 +218,6 @@
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      // Render dan download file PDF
       html2pdf().from(element).set(options).save();
     }
 
