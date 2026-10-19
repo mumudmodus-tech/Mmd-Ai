@@ -408,4 +408,84 @@
 
         if (data.candidates && data.candidates[0].content.parts[0].text) {
           const appendedText = data.candidates[0].content.parts[0].text;
-          rawTextResult
+          rawTextResult += "\n\n---\n\n" + appendedText;
+          
+          document.getElementById('resultBox').innerHTML = marked.parse(rawTextResult);
+          document.getElementById('rawMarkdownBox').value = rawTextResult;
+          updateWordCount(rawTextResult);
+          saveDraftToLocal(rawTextResult, userPrompt);
+        } else if (data.error) {
+          alert("Gagal memperpanjang: " + data.error.message);
+        }
+      } catch (err) {
+        alert("Gagal terhubung ke server.");
+      } finally {
+        expandBtn.disabled = false;
+        expandBtn.innerHTML = "<span>➕</span> Perpanjang & Tambah Detail Bab Pro";
+      }
+    }
+
+    function downloadPDF() {
+      if (!rawTextResult) return;
+
+      const selectedTheme = document.getElementById('pdfTheme').value;
+      const userPrompt = document.getElementById('userPrompt').value.trim() || "Dokumen Digital Pro";
+      const authorName = document.getElementById('authorName').value.trim() || "Pak Phow";
+      const authorLink = document.getElementById('authorLink').value.trim() || "lynk.id/mmdpublishing";
+
+      const element = document.createElement('div');
+      element.className = `pdf-container ${selectedTheme}`;
+      
+      const parsedBody = marked.parse(rawTextResult);
+
+      element.innerHTML = `
+        <!-- HALAMAN 1: COVER PRO -->
+        <div class="pdf-cover">
+          <div style="border-top: 4px solid currentColor; padding-top: 20px;">
+            <span class="cover-accent" style="padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px;">E-Book & Panduan Eksklusif</span>
+          </div>
+          
+          <div style="margin: 40px 0;">
+            <h1 style="font-size: 28px; font-weight: bold; line-height: 1.3; margin-bottom: 15px;">${userPrompt}</h1>
+            <p style="font-size: 14px; color: #64748b; font-style: italic;">Diterbitkan Secara Profesional via Mmd-Ai Studio</p>
+          </div>
+
+          <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+            <p style="font-size: 11px; color: #94a3b8; margin: 0;">Disusun Oleh:</p>
+            <p style="font-size: 14px; font-weight: bold; color: #334155; margin-top: 2px;">${authorName}</p>
+            <p style="font-size: 11px; color: #10b981; margin-top: 2px; font-weight: bold;">https://${authorLink.replace('https://', '')}</p>
+          </div>
+        </div>
+
+        <!-- HALAMAN 2 DST: ISI KONTEN DENGAN FOOTER NOMOR HALAMAN -->
+        <div class="pdf-content" style="padding: 40px;">
+          ${parsedBody}
+          
+          <div class="pdf-page-footer">
+            <span>© Hak Cipta Dilindungi • ${authorName}</span>
+            <span>${authorLink}</span>
+          </div>
+        </div>
+      `;
+
+      const options = {
+        margin:       0,
+        filename:     `MmdAi-Pro-${userPrompt.substring(0, 20).replace(/\s+/g, '-')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      html2pdf().from(element).set(options).save();
+    }
+
+    function copyResult() {
+      if (rawTextResult) {
+        navigator.clipboard.writeText(rawTextResult);
+        alert('Teks berhasil disalin ke clipboard!');
+      }
+    }
+  </script>
+</body>
+</html>
