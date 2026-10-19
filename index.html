@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mmd-Ai Studio Pro - Content & Ebook Generator</title>
+  <title>Mmd-Ai Studio Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Library Markdown Parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -11,8 +11,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     body { background-color: #0b0f19; color: #f3f4f6; }
-    
-    /* Styling Tampilan Web */
     .prose-custom h1 { font-size: 1.5rem; font-weight: 700; color: #10b981; margin-top: 1rem; margin-bottom: 0.5rem; }
     .prose-custom h2 { font-size: 1.25rem; font-weight: 700; color: #38bdf8; margin-top: 1rem; margin-bottom: 0.5rem; }
     .prose-custom h3 { font-size: 1.1rem; font-weight: 600; color: #facc15; margin-top: 0.75rem; margin-bottom: 0.5rem; }
@@ -20,48 +18,18 @@
     .prose-custom hr { border-color: #334155; margin: 1.5rem 0; }
     .prose-custom strong { color: #ffffff; font-weight: 600; }
     .prose-custom ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
-
-    /* Aturan Anti-Terpotong Canggung untuk PDF */
     .html2pdf__page-break { page-break-before: always; }
     .pdf-content h1, .pdf-content h2, .pdf-content h3 { page-break-after: avoid; }
     .pdf-content p, .pdf-content ul { page-break-inside: avoid; }
-
-    /* Template PDF Base */
     .pdf-container { background: #ffffff; font-family: 'Georgia', serif; line-height: 1.8; color: #1e293b; position: relative; }
-
-    /* Cover Page Styling */
-    .pdf-cover {
-      min-height: 280mm;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 60px 40px;
-      box-sizing: border-box;
-      text-align: center;
-      page-break-after: always;
-    }
-
-    /* Footer Halaman PDF */
-    .pdf-page-footer {
-      margin-top: 40px;
-      border-top: 1px solid #e2e8f0;
-      padding-top: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #94a3b8;
-      font-size: 9px;
-    }
-
-    /* Tema Warna PDF */
+    .pdf-cover { min-height: 280mm; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 40px; box-sizing: border-box; text-align: center; page-break-after: always; }
+    .pdf-page-footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 9px; }
     .theme-emerald .cover-accent { background-color: #10b981; color: #ffffff; }
     .theme-emerald h1 { color: #065f46; }
     .theme-emerald h2 { color: #047857; }
-
     .theme-navy .cover-accent { background-color: #1e3a8a; color: #ffffff; }
     .theme-navy h1 { color: #1e3a8a; }
     .theme-navy h2 { color: #1d4ed8; }
-
     .theme-minimal .cover-accent { background-color: #334155; color: #ffffff; }
     .theme-minimal h1 { color: #0f172a; }
     .theme-minimal h2 { color: #334155; }
@@ -74,7 +42,7 @@
     <h1 class="text-xl sm:text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
       <span>✨</span> Mmd-Ai Studio <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono">PRO</span>
     </h1>
-    <p class="text-xs sm:text-sm text-gray-400 mt-1">Professional E-Book & Affiliate Content SaaS Generator</p>
+    <p class="text-xs sm:text-sm text-gray-400 mt-1">Professional E-Book & Affiliate Content Generator</p>
   </div>
 
   <!-- Main Container -->
@@ -86,7 +54,7 @@
         <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
           1. Gemini API Key
         </label>
-        <button id="resetMemBtn" onclick="forceResetKey()" class="text-xs text-red-400 hover:underline">Reset Memori HP</button>
+        <button onclick="forceResetKey()" class="text-xs text-red-400 hover:underline">Reset Memori HP</button>
       </div>
       <input type="text" id="apiKey" placeholder="Tempel API Key Gemini Di Sini (AIzaSy...)" 
         class="w-full p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition">
@@ -112,22 +80,22 @@
         3. Pilih AI Skill
       </label>
       <div class="grid grid-cols-2 gap-2">
-        <button type="button" onclick="selectSkill('ebook', this)" class="skill-btn p-2.5 bg-gray-950 border border-emerald-500/50 rounded-xl text-left hover:border-emerald-500 transition active">
+        <button type="button" onclick="selectSkill('ebook', this)" id="btn-ebook" class="skill-btn p-2.5 bg-gray-950 border border-emerald-500 rounded-xl text-left transition">
           <div class="text-base">📘</div>
           <div class="font-semibold text-xs sm:text-sm text-white mt-0.5">E-Book</div>
           <div class="text-[10px] text-gray-400">Draf Bab & PDF</div>
         </button>
-        <button type="button" onclick="selectSkill('sepatu', this)" class="skill-btn p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:border-emerald-500 transition">
+        <button type="button" onclick="selectSkill('sepatu', this)" id="btn-sepatu" class="skill-btn p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left transition">
           <div class="text-base">👟</div>
           <div class="font-semibold text-xs sm:text-sm text-white mt-0.5">Affiliate Sepatu</div>
           <div class="text-[10px] text-gray-400">Skrip VT + Hook</div>
         </button>
-        <button type="button" onclick="selectSkill('skrip', this)" class="skill-btn p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:border-emerald-500 transition">
+        <button type="button" onclick="selectSkill('skrip', this)" id="btn-skrip" class="skill-btn p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left transition">
           <div class="text-base">🎬</div>
           <div class="font-semibold text-xs sm:text-sm text-white mt-0.5">Skrip Iklan</div>
           <div class="text-[10px] text-gray-400">Konversi Tinggi</div>
         </button>
-        <button type="button" onclick="selectSkill('medsos', this)" class="skill-btn p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:border-emerald-500 transition">
+        <button type="button" onclick="selectSkill('medsos', this)" id="btn-medsos" class="skill-btn p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left transition">
           <div class="text-base">📱</div>
           <div class="font-semibold text-xs sm:text-sm text-white mt-0.5">Media Sosial</div>
           <div class="text-[10px] text-gray-400">Caption & Hashtag</div>
@@ -163,15 +131,15 @@
         class="w-full p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition"></textarea>
     </div>
 
-    <!-- Generate Button & Progress Bar -->
-    <div class="space-y-2 pt-1">
+    <!-- Generate Button -->
+    <div>
       <button id="generateBtn" onclick="generateContent()" 
-        class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
         <span>✨</span> Generate Konten & Layout Pro
       </button>
       
-      <!-- Progress Bar Container -->
-      <div id="progressContainer" class="hidden space-y-1">
+      <!-- Progress Bar -->
+      <div id="progressContainer" class="hidden space-y-1 mt-2">
         <div class="w-full bg-gray-950 rounded-full h-2 overflow-hidden border border-gray-800">
           <div id="progressBar" class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
         </div>
@@ -183,7 +151,6 @@
 
   <!-- Result Container -->
   <div class="w-full max-w-xl mt-4 mb-10">
-    <!-- Stat Bar & View Switcher -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
       <div class="flex items-center gap-2">
         <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Hasil AI:</span>
@@ -212,7 +179,7 @@
     </div>
     <textarea id="rawMarkdownBox" class="w-full h-[250px] p-3 bg-gray-950 border border-gray-800 rounded-xl text-xs text-emerald-300 font-mono hidden focus:outline-none" readonly></textarea>
 
-    <!-- Tombol Perpanjang / Tambah Detail -->
+    <!-- Tombol Perpanjang -->
     <div id="expandActionBox" class="mt-3 hidden">
       <button onclick="expandContent()" id="expandBtn" class="w-full py-2.5 bg-gray-800 hover:bg-gray-700 text-emerald-400 border border-emerald-500/30 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2">
         <span>➕</span> Perpanjang & Tambah Detail Bab Pro
@@ -299,193 +266,4 @@
       localStorage.setItem('mmd_saved_draft', text);
       localStorage.setItem('mmd_saved_prompt', prompt);
       localStorage.setItem('mmd_author_name', document.getElementById('authorName').value.trim());
-      localStorage.setItem('mmd_author_link', document.getElementById('authorLink').value.trim());
-    }
-
-    async function generateContent() {
-      const apiKeyInput = document.getElementById('apiKey').value.trim();
-      const userPrompt = document.getElementById('userPrompt').value.trim();
-      const depth = document.getElementById('contentDepth').value;
-      const resultBox = document.getElementById('resultBox');
-      const btn = document.getElementById('generateBtn');
-      const downloadBtn = document.getElementById('downloadPdfBtn');
-      const expandBox = document.getElementById('expandActionBox');
-      const progContainer = document.getElementById('progressContainer');
-      const progressBar = document.getElementById('progressBar');
-      const progressStatus = document.getElementById('progressStatus');
-
-      if (!apiKeyInput) { alert('Masukkan API Key!'); return; }
-      if (!userPrompt) { alert('Masukkan ide atau topik!'); return; }
-
-      localStorage.setItem('gemini_api_key', apiKeyInput);
-
-      btn.disabled = true;
-      downloadBtn.classList.add('hidden');
-      expandBox.classList.add('hidden');
-      progContainer.classList.remove('hidden');
-
-      progressBar.style.width = '20%';
-      progressStatus.innerText = '1. Menghubungkan ke server Gemini AI...';
-      await new Promise(r => setTimeout(r, 400));
-
-      let depthInstruction = depth === 'deep' ? "Buat dengan sangat mendalam, detail, mencakup studi kasus komprehensif, dan penjelasan langkah demi langkah yang panjang." : "Buat ringkas, padat, dan langsung pada intinya.";
-
-      let systemInstruction = "";
-      if (currentSkill === 'ebook') {
-        systemInstruction = `Bertindaklah sebagai penulis e-book profesional. ${depthInstruction} Buat draf lengkap dengan Judul Utama, Kata Pengantar, dan Bab terstruktur. Gunakan format Markdown (# untuk Judul Utama, ## untuk Sub-judul, dan ** teks tebal).`;
-      } else if (currentSkill === 'sepatu') {
-        systemInstruction = `Bertindaklah sebagai Content Creator Affiliate TikTok Sepatu. ${depthInstruction} Buat 3 Variasi Skrip Video TikTok yang menjual dengan HOOK 3 Detik, Visual, Keunggulan produk, dan CTA ke 'Keranjang Kuning' atau 'lynk.id/mmdpublishing'. Gunakan format Markdown.`;
-      } else if (currentSkill === 'skrip') {
-        systemInstruction = `Bertindaklah sebagai spesialis copywriting iklan video profesional. ${depthInstruction} Buat skrip iklan berformat rapi dengan Hook, Isi, dan CTA. Gunakan format Markdown.`;
-      } else {
-        systemInstruction = `Bertindaklah sebagai Social Media Strategist. ${depthInstruction} Buat konsep konten medsos siap posting lengkap dengan Headline, Caption, dan Hashtag. Gunakan format Markdown.`;
-      }
-
-      const fullPrompt = `${systemInstruction}\n\nTopik / Permintaan: ${userPrompt}`;
-
-      progressBar.style.width = '50%';
-      progressStatus.innerText = '2. Menganalisis topik & merancang struktur...';
-
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKeyInput}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
-        });
-
-        progressBar.style.width = '80%';
-        progressStatus.innerText = '3. Menyusun tata letak konten pro...';
-
-        const data = await response.json();
-
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
-          rawTextResult = data.candidates[0].content.parts[0].text;
-          resultBox.innerHTML = marked.parse(rawTextResult);
-          document.getElementById('rawMarkdownBox').value = rawTextResult;
-          
-          updateWordCount(rawTextResult);
-          saveDraftToLocal(rawTextResult, userPrompt);
-
-          progressBar.style.width = '100%';
-          progressStatus.innerText = '✨ Konten berhasil dibuat!';
-          await new Promise(r => setTimeout(r, 600));
-
-          downloadBtn.classList.remove('hidden');
-          expandBox.classList.remove('hidden');
-        } else if (data.error) {
-          resultBox.innerHTML = `<span class="text-red-400">Terjadi kesalahan API: ${data.error.message}</span>`;
-        }
-      } catch (err) {
-        resultBox.innerHTML = "<span class='text-red-400'>Gagal terhubung ke server.</span>";
-      } finally {
-        btn.disabled = false;
-        btn.innerText = "✨ Generate Konten & Layout Pro";
-        progContainer.classList.add('hidden');
-        progressBar.style.width = '0%';
-      }
-    }
-
-    async function expandContent() {
-      const apiKeyInput = document.getElementById('apiKey').value.trim();
-      const userPrompt = document.getElementById('userPrompt').value.trim();
-      const expandBtn = document.getElementById('expandBtn');
-
-      if (!apiKeyInput || !rawTextResult) return;
-
-      expandBtn.disabled = true;
-      expandBtn.innerText = "⏳ Menambahkan Detail Mendalam...";
-
-      const expandPrompt = `Berikut draf hasil awal:\n\n${rawTextResult}\n\nTolong lanjutkan dan perpanjang draf di atas dengan memberikan bab lanjutan, studi kasus nyata, dan tips pro mendalam. Pertahankan format Markdown.`;
-
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKeyInput}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: expandPrompt }] }] })
-        });
-
-        const data = await response.json();
-
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
-          const appendedText = data.candidates[0].content.parts[0].text;
-          rawTextResult += "\n\n---\n\n" + appendedText;
-          
-          document.getElementById('resultBox').innerHTML = marked.parse(rawTextResult);
-          document.getElementById('rawMarkdownBox').value = rawTextResult;
-          updateWordCount(rawTextResult);
-          saveDraftToLocal(rawTextResult, userPrompt);
-        } else if (data.error) {
-          alert("Gagal memperpanjang: " + data.error.message);
-        }
-      } catch (err) {
-        alert("Gagal terhubung ke server.");
-      } finally {
-        expandBtn.disabled = false;
-        expandBtn.innerHTML = "<span>➕</span> Perpanjang & Tambah Detail Bab Pro";
-      }
-    }
-
-    function downloadPDF() {
-      if (!rawTextResult) return;
-
-      const selectedTheme = document.getElementById('pdfTheme').value;
-      const userPrompt = document.getElementById('userPrompt').value.trim() || "Dokumen Digital Pro";
-      const authorName = document.getElementById('authorName').value.trim() || "Pak Phow";
-      const authorLink = document.getElementById('authorLink').value.trim() || "lynk.id/mmdpublishing";
-
-      const element = document.createElement('div');
-      element.className = `pdf-container ${selectedTheme}`;
       
-      const parsedBody = marked.parse(rawTextResult);
-
-      element.innerHTML = `
-        <!-- HALAMAN 1: COVER PRO -->
-        <div class="pdf-cover">
-          <div style="border-top: 4px solid currentColor; padding-top: 20px;">
-            <span class="cover-accent" style="padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px;">E-Book & Panduan Eksklusif</span>
-          </div>
-          
-          <div style="margin: 40px 0;">
-            <h1 style="font-size: 28px; font-weight: bold; line-height: 1.3; margin-bottom: 15px;">${userPrompt}</h1>
-            <p style="font-size: 14px; color: #64748b; font-style: italic;">Diterbitkan Secara Profesional via Mmd-Ai Studio</p>
-          </div>
-
-          <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
-            <p style="font-size: 11px; color: #94a3b8; margin: 0;">Disusun Oleh:</p>
-            <p style="font-size: 14px; font-weight: bold; color: #334155; margin-top: 2px;">${authorName}</p>
-            <p style="font-size: 11px; color: #10b981; margin-top: 2px; font-weight: bold;">https://${authorLink.replace('https://', '')}</p>
-          </div>
-        </div>
-
-        <!-- HALAMAN 2 DST: ISI KONTEN DENGAN FOOTER NOMOR HALAMAN -->
-        <div class="pdf-content" style="padding: 40px;">
-          ${parsedBody}
-          
-          <div class="pdf-page-footer">
-            <span>© Hak Cipta Dilindungi • ${authorName}</span>
-            <span>${authorLink}</span>
-          </div>
-        </div>
-      `;
-
-      const options = {
-        margin:       0,
-        filename:     `MmdAi-Pro-${userPrompt.substring(0, 20).replace(/\s+/g, '-')}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-
-      html2pdf().from(element).set(options).save();
-    }
-
-    function copyResult() {
-      if (rawTextResult) {
-        navigator.clipboard.writeText(rawTextResult);
-        alert('Teks berhasil disalin ke clipboard!');
-      }
-    }
-  </script>
-</body>
-</html>
